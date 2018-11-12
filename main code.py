@@ -1,5 +1,6 @@
 ###################################################################################
 # Name: David M., Tristyn P., and Christian W.
+# Project: Security System
 ###################################################################################
 
 # set to 1 if testing on a computer if sensors arn't set up
@@ -26,8 +27,17 @@ POLL_RATE = 4
 TIME_PERIOD_ANALYZE = .5
 # percent of signals that must be positive within the time period for a sensor to be considered tripped
 PERCENT_SIGNALS = 50
+# color codes for each sensor state
+SENSOR_LIVE = "green"
+SENSOR_OFFLINE = "grey"
+SENSOR_TRIPPED = "red"
+SENSOR_INACTIVE = "yellow"
+# PIN codes
+SHUT_DOWN_PASSWORD = "1111"
+DEACTIVATE_PASSWORD = "9999"
 
-
+# a class that responds to user input and sensor data and changes GUI accordingly
+# depending on the current states
 class MainGUI(Frame):
     # the constructor
     def __init__(self, parent):
@@ -38,18 +48,20 @@ class MainGUI(Frame):
         parent.attributes("-fullscreen", True)
         # boolean that indicates the security system is offline(the starting state) or online; toggled by the power button
         self.on = False
+        # boolean that indicates whether sensors are tripped or not
         self.alarm = False
+        # boolean that indicates whether to activate or deactivate a set of sensors
         self.monitorWindow = True
         self.monitorDoor = True
         # create power button frame that toggles the system on/off
-        self.powerButton = Button(self, text="System Off", font=("Arial", 32), bg="red", borderwidth=0,
-                                  highlightthickness=0, activebackground="red", command=lambda: powerButton())
+        self.powerButton = Button(self, text="System Off", font=("Arial", 32), bg=SENSOR_TRIPPED, borderwidth=0,
+                                  highlightthickness=0, activebackground=SENSOR_TRIPPED, command=lambda: powerButton())
         self.powerButton.grid(row=2, column=3, sticky=N + S + E + W, columnspan=20, rowspan=10)
         # make GUI frames for the window and door, and have the default color be green, indicating they
         # have not been "broken" into to trip the alarm, otherwise, have frame flash red to signal the alarm being tripped
-        self.windowFrame = Button(self, text="Window", font=("Arial", 26), bg="grey", activebackground="grey", command=lambda: deactivate("Window"))
+        self.windowFrame = Button(self, text="Window", font=("Arial", 26), bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE, command=lambda: deactivate("Window"))
         self.windowFrame.grid(row=20, column=5, sticky=N + S + E + W, columnspan=20, rowspan=10)
-        self.doorFrame = Button(self, text="Door", font=("Arial", 26), bg="grey", activebackground="grey", command=lambda: deactivate("Door"))
+        self.doorFrame = Button(self, text="Door", font=("Arial", 26), bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE, command=lambda: deactivate("Door"))
         self.doorFrame.grid(row=20, column=30, sticky=N + S + E + W, columnspan=20, rowspan=10)
 
         # when powerButton frame is clicked, this function is called which toggles
@@ -59,77 +71,76 @@ class MainGUI(Frame):
             if self.alarm:
                 return
             if self.on:
-                self.powerButton.configure(bg="red", activebackground="red", text="System Off")
+                self.powerButton.configure(bg=SENSOR_TRIPPED, activebackground=SENSOR_TRIPPED, text="System Off")
                 self.on = 0
                 # set sensor frames to grey if they are not disabled
                 if self.monitorWindow:
-                    self.windowFrame.configure(bg="grey")
+                    self.windowFrame.configure(bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE)
                 if self.monitorDoor:
-                    self.doorFrame.configure(bg="grey")
+                    self.doorFrame.configure(bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE)
                 for sensor in sensorList:
                     if self.monitorWindow and sensor.location == "Window":
-                        sensor.GUIref.configure(bg="grey")
+                        sensor.GUIref.configure(bg=SENSOR_OFFLINE)
                     elif self.monitorDoor and sensor.location == "Door":
-                        sensor.GUIref.configure(bg="grey")
+                        sensor.GUIref.configure(bg=SENSOR_OFFLINE)
             else:
-                self.powerButton.configure(bg="green", activebackground="green", text="System On")
+                self.powerButton.configure(bg=SENSOR_LIVE, activebackground=SENSOR_LIVE, text="System On")
                 self.on = 1
 
         # deactivate the set of sensors and set frames to yellow, otherwise toggle back
         # to active state if it was deactivated
         def deactivate(object):
             # if password is not correct (in this case "9999") or if alarm is on terminate function
-            if self.display["text"] != "9999" or self.alarm:
+            if self.display["text"] != DEACTIVATE_PASSWORD or self.alarm:
                 return
             # otherwise allow user to toggle the sensor state and wipe display frame
             self.display["text"] = ""
             if object == "Window":
                 if self.monitorWindow:
-                    self.windowFrame.configure(bg="yellow", activebackground="yellow")
+                    self.windowFrame.configure(bg=SENSOR_INACTIVE, activebackground=SENSOR_INACTIVE)
                     for sensor in sensorList:
                         if sensor.location == "Window":
-                            sensor.GUIref.configure(bg="yellow")
+                            sensor.GUIref.configure(bg=SENSOR_INACTIVE)
                     self.monitorWindow = 0
                 else:
                     # if system is on, set window frames to green and wipe outputLog
                     if self.on:
-                        self.windowFrame.configure(bg="green", activebackground="green")
+                        self.windowFrame.configure(bg=SENSOR_LIVE, activebackground=SENSOR_LIVE)
                         for sensor in sensorList:
                             if sensor.location == object:
                                 sensor.outputLog = [0]
-                                sensor.GUIref.configure(bg="green")
+                                sensor.GUIref.configure(bg=SENSOR_LIVE)
                         self.monitorWindow = 1
                     # if system is off set window frames to grey
                     elif self.on == 0:
-                        self.windowFrame.configure(bg="grey", activebackground="grey")
+                        self.windowFrame.configure(bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE)
                         for sensor in sensorList:
                             if sensor.location == object:
-                                sensor.GUIref.configure(bg="grey")
+                                sensor.GUIref.configure(bg=SENSOR_OFFLINE)
                         self.monitorWindow = 1
             else:
                 if object == "Door":
                     if self.monitorDoor:
-                        self.doorFrame.configure(bg="yellow", activebackground="yellow")
+                        self.doorFrame.configure(bg=SENSOR_INACTIVE, activebackground=SENSOR_INACTIVE)
                         for sensor in sensorList:
                             if sensor.location == object:
-                                sensor.GUIref.configure(bg="yellow")
+                                sensor.GUIref.configure(bg=SENSOR_INACTIVE)
                         self.monitorDoor = 0
                     else:
                         # if system is on, set window frames to green and wipe outputLog
                         if self.on:
-                            self.doorFrame.configure(bg="green", activebackground="green")
+                            self.doorFrame.configure(bg=SENSOR_LIVE, activebackground=SENSOR_LIVE)
                             for sensor in sensorList:
                                 if sensor.location == object:
                                     sensor.outputLog = [0]
-                                    sensor.GUIref.configure(bg="green")
+                                    sensor.GUIref.configure(bg=SENSOR_LIVE)
                             self.monitorDoor = 1
                         elif self.on == 0:
-                            self.doorFrame.configure(bg="grey", activebackground="grey")
+                            self.doorFrame.configure(bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE)
                             for sensor in sensorList:
                                 if sensor.location == object:
-                                    sensor.GUIref.configure(bg="grey")
+                                    sensor.GUIref.configure(bg=SENSOR_OFFLINE)
                             self.monitorDoor = 1
-
 
         # set up the rest of the GUI
         self.setupGUI()
@@ -149,27 +160,27 @@ class MainGUI(Frame):
         for i in range(len(sensorDictFormat['Window'])):
             sensor = sensorDictFormat['Window'][i]
             a = Label(self, text=sensorDict['Window'][sensor].type + " Sensor", font=("Arial", 18),
-                      bg="grey", relief="ridge")
+                      bg=SENSOR_OFFLINE, relief="ridge")
             a.grid(row=int(35 + 12 * i), column=5, sticky=N + S + E + W, columnspan=20, rowspan=12)
             sensorDict['Window'][sensor].GUIref = a
         for i in range(len(sensorDictFormat['Door'])):
             sensor = sensorDictFormat['Door'][i]
             a = Label(self, text=sensorDict['Door'][sensor].type + " Sensor", font=("Arial", 18),
-                                            bg="grey", relief="ridge")
+                      bg=SENSOR_OFFLINE, relief="ridge")
             a.grid(row=int(35 + 8 * i), column=30, sticky=N + S + E + W, columnspan=20, rowspan=8)
             sensorDict['Door'][sensor].GUIref = a
 
         # create borders surrounding sensor status windows
         # format: row, column, column span, row span, gridded by 5's
         sizeSpecs = [[15, 0, 55, 5], [15, 0, 5, 45], [59, 0, 55, 1],
-                    [30, 0, 55, 5], [15, 25, 5, 45], [15, 50, 5, 45]]
+                     [30, 0, 55, 5], [15, 25, 5, 45], [15, 50, 5, 45]]
         for i in range(6):
             windowBorder = Label(self, bg="black")
             windowBorder.grid(row=sizeSpecs[i][0], column=sizeSpecs[i][1], sticky=N + S + E + W,
-                                  columnspan=sizeSpecs[i][2], rowspan=sizeSpecs[i][3])
+                              columnspan=sizeSpecs[i][2], rowspan=sizeSpecs[i][3])
 
         # the display for the keypad
-        self.display = Label(self, text="", bg="grey", font=("Arial", 25))
+        self.display = Label(self, text="", bg=SENSOR_OFFLINE, font=("Arial", 25))
         self.display.grid(row=15, column=65, columnspan=30, rowspan=7,
                           sticky=E + W + N + S)
 
@@ -177,7 +188,7 @@ class MainGUI(Frame):
         # 7 8 9
         # 4 5 6
         # 1 2 3
-        # < 0
+        # < 0 C
 
         # create the keypad
         key = Button(self, text="7", font=("Arial", 18), bg="purple", activebackground="purple",
@@ -225,28 +236,36 @@ class MainGUI(Frame):
 
     # append key character to display and set both alarm and system to off if password is correct
     def keyPress(self, char):
+        # determine maximum amount of allowed characters
+        if len(SHUT_DOWN_PASSWORD)  < len(DEACTIVATE_PASSWORD):
+            maxChars = len(DEACTIVATE_PASSWORD)
+        else:
+            maxChars = len(SHUT_DOWN_PASSWORD)
         # delete last character
         if char == "<":
             self.display["text"] = self.display["text"][:-1]
         # clear the text
         elif char == "C":
             self.display["text"] = ""
-        elif len(self.display["text"]) < 4:
+        # ensure the amount of characters isn't greater than max password length
+        elif len(self.display["text"]) < maxChars:
             self.display["text"] += char
-        if self.display["text"] == "1111":
+        # if password is correct, change power state to off and power button to red
+        # and change sensor colors to offline color; set alarm state to False
+        if self.display["text"] == SHUT_DOWN_PASSWORD:
             self.display["text"] = ""
             self.alarm = 0
             self.on = 0
-            self.powerButton.configure(bg="red", activebackground="red", text="System Off")
+            self.powerButton.configure(bg=SENSOR_TRIPPED, activebackground=SENSOR_TRIPPED, text="System Off")
             if self.monitorWindow:
-                self.windowFrame.configure(bg="grey")
+                self.windowFrame.configure(bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE)
             if self.monitorDoor:
-                self.doorFrame.configure(bg="grey")
+                self.doorFrame.configure(bg=SENSOR_OFFLINE, activebackground=SENSOR_OFFLINE)
             for sensor in sensorList:
                 if self.monitorWindow and sensor.location == "Window":
-                    sensor.GUIref.configure(bg="grey")
+                    sensor.GUIref.configure(bg=SENSOR_OFFLINE)
                 elif self.monitorDoor and sensor.location == "Door":
-                    sensor.GUIref.configure(bg="grey")
+                    sensor.GUIref.configure(bg=SENSOR_OFFLINE)
 
     # analyze sensor output and change the state of frames/windows accordingly when system is live
     def determineGUIstate(self):
@@ -255,7 +274,7 @@ class MainGUI(Frame):
             # system off state or alarm state
             if not self.on or self.alarm:
                 dataLogsWiped = 0
-                # keep sleeping until alarm is off and power button is pressed to turn system on
+                # keep sleeping while alarm is off and wait until power button is pressed to turn system on
                 sleep(.25)
 
             # if system is on and no alarm is triggered, keep track of sensor out and react accordingly
@@ -267,14 +286,14 @@ class MainGUI(Frame):
                     dataLogsWiped = 1
                     # set every window to green if it is not disabled
                     if self.monitorWindow:
-                        self.windowFrame.configure(bg="green")
+                        self.windowFrame.configure(bg=SENSOR_LIVE, activebackground=SENSOR_LIVE)
                     if self.monitorDoor:
-                        self.doorFrame.configure(bg="green")
+                        self.doorFrame.configure(bg=SENSOR_LIVE, activebackground=SENSOR_LIVE)
                     for sensor in sensorList:
                         if self.monitorWindow and sensor.location == "Window":
-                            sensor.GUIref.configure(bg="green")
+                            sensor.GUIref.configure(bg=SENSOR_LIVE)
                         elif self.monitorDoor and sensor.location == "Door":
-                            sensor.GUIref.configure(bg="green")
+                            sensor.GUIref.configure(bg=SENSOR_LIVE)
 
                 # initialize counters to keep track of how many sensors have been set off for door and window
                 doorSensorsTripped = int(0)
@@ -295,9 +314,9 @@ class MainGUI(Frame):
                         print('sensor loc: {} sensor type: {} avg: {} output: {}'.format(
                             sensor.location, sensor.type, avg, sensor.outputLog))
                     if avg < (float(PERCENT_SIGNALS) / 100):
-                        sensor.GUIref.configure(bg="green")
+                        sensor.GUIref.configure(bg=SENSOR_LIVE)
                     else:
-                        sensor.GUIref.configure(bg="red")
+                        sensor.GUIref.configure(bg=SENSOR_TRIPPED)
                         if sensor.location == "Door":
                             doorSensorsTripped += 1
                         else:
@@ -324,12 +343,12 @@ class MainGUI(Frame):
     # make the inputted frame flash red during alarm state
     def frameFlashRed(self, ref):
         while self.alarm:
-            ref.configure(bg="red")
+            ref.configure(bg=SENSOR_TRIPPED)
             sleep(.5)
             ref.configure(bg="black")
             sleep(.2)
 
-        ref.configure(bg="grey")
+        ref.configure(bg=SENSOR_OFFLINE)
 
     # play siren sound while the alarm is on
     # ensure that siren.wav file is in same directory
@@ -340,6 +359,7 @@ class MainGUI(Frame):
             else:
                 os.system("aplay siren.wav")
 
+# a class used for each sensor which initializes output log and holds info about the sensor
 class Sensor(object):
     def __init__(self, name, type, location, inputPin, outputPin):
         self.name = name
@@ -400,6 +420,7 @@ def monitorSensors():
     if TESTING:
         return
 
+    # continually log sensor output for each sensor
     while 1:
         for i in range(len(sensorList)):
             # delete first element in outputLog list if the size is over desired threshold
@@ -446,8 +467,9 @@ def testingGenerateSensorData():
                 sensorList[i].outputLog.append(1)
             else:
                 sensorList[i].outputLog.append(0)
-            #sensorList[i].outputLog.append(1)
+            # sensorList[i].outputLog.append(1)
         sleep(.5)
+
 
 # function that calls for multiple functions to run in seperate threads,
 # resulting in the functions to run in parallel of each other
@@ -459,7 +481,5 @@ def runThreads():
         if TESTING:
             Thread(target=testingGenerateSensorData).start()
 
+
 runThreads()
-
-
-
