@@ -100,7 +100,7 @@ class MainGUI(Frame):
                                 sensor.GUIref.configure(bg="green")
                         self.monitorWindow = 1
                     # if system is off set window frames to grey
-                    elif self.off:
+                    elif self.on == 0:
                         self.windowFrame.configure(bg="grey", activebackground="grey")
                         for sensor in sensorList:
                             if sensor.location == object:
@@ -123,7 +123,7 @@ class MainGUI(Frame):
                                     sensor.outputLog = [0]
                                     sensor.GUIref.configure(bg="green")
                             self.monitorDoor = 1
-                        elif self.off:
+                        elif self.on == 0:
                             self.doorFrame.configure(bg="grey", activebackground="grey")
                             for sensor in sensorList:
                                 if sensor.location == object:
